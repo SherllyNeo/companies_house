@@ -4,6 +4,43 @@ use std::io::stdin;
 use serde_json::Value;
 use base64::prelude::*;
 
+
+fn main() -> Result<()> {
+    // We use the anyhow crate to return generic errors from this with Context
+    // This means we can ignore complex error handling 
+    // The ? operator checks if something failed and returns an error from the function is so
+    // You can also be verbose and use match statements as shown by User input
+
+    // get api key from envrioment, source .env if you need to
+    let api_key = std::env::var("COMPANIES_HOUSE_API_KEY").context("No api key")?;
+
+    // long way, this is like using get_user_input()?;
+    let input = match get_user_input() {
+        Ok(user_input) => user_input,
+        Err(err) =>  return Err(Error::msg(format!("There was an error getting user input: {err:?}")))
+    };
+
+    // define a base url
+    let base_search_url = "https://api.company-information.service.gov.uk/advanced-search/companies";
+
+
+    // combine the base search url and user input to make the url proper
+    let search_url = format!("{base_search_url}?company_name_includes={input}");
+
+    // send the request, we use & to pass a reference, like the addresses in C. As this takes  &str
+    // rather than String. This is for performance reasons, take &str if you are only reading values
+    let company_data = get_reqest(&search_url, &api_key)?;
+    
+    // turn the company data into a pretty format, not required
+    let pretty_data = serde_json::to_string_pretty(&company_data)?;
+
+
+    // print out stuff
+    println!("you typed \"{input}\" ");
+    println!("It returned \n\"{pretty_data}\" ");
+    Ok(())
+}
+
 fn get_user_input() -> Result<String> {
     // helper function to take user input and pop it into the buffer
     let mut buffer = String::new();
@@ -64,39 +101,3 @@ fn get_reqest(url: &str, api_key: &str) -> Result<Value> {
     }
 }
 
-
-fn main() -> Result<()> {
-    // We use the anyhow crate to return generic errors from this with Context
-    // This means we can ignore complex error handling 
-    // The ? operator checks if something failed and returns an error from the function is so
-    // You can also be verbose and use match statements as shown by User input
-
-    // get api key from envrioment, source .env if you need to
-    let api_key = std::env::var("COMPANIES_HOUSE_API_KEY").context("No api key")?;
-
-    // long way, this is like using get_user_input()?;
-    let input = match get_user_input() {
-        Ok(user_input) => user_input,
-        Err(err) =>  return Err(Error::msg(format!("There was an error getting user input: {err:?}")))
-    };
-
-    // define a base url
-    let base_search_url = "https://api.company-information.service.gov.uk/advanced-search/companies";
-
-
-    // combine the base search url and user input to make the url proper
-    let search_url = format!("{base_search_url}?company_name_includes={input}");
-
-    // send the request, we use & to pass a reference, like the addresses in C. As this takes  &str
-    // rather than String. This is for performance reasons, take &str if you are only reading values
-    let company_data = get_reqest(&search_url, &api_key)?;
-    
-    // turn the company data into a pretty format, not required
-    let pretty_data = serde_json::to_string_pretty(&company_data)?;
-
-
-    // print out stuff
-    println!("you typed \"{input}\" ");
-    println!("It returned \n\"{pretty_data}\" ");
-    Ok(())
-}
